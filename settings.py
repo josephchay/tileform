@@ -1,0 +1,56 @@
+APP_MODE = 'dev'
+
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 704
+WINDOW_SMOOTH_SCROLL = True
+
+FPS = 60
+
+RENDER_SCALE = 2.0
+
+ASSETS_PATH = 'assets/images'
+
+IMG_COLORKEY_BLACK = (0, 0, 0)
+IMG_COLORKEY_WHITE = (255, 255, 255)
+
+TILE_SIZE = 16
+
+SCROLL_SPEED = 3
+KEY_SCROLL_SPEED = 20
+
+EDITOR_BACKGROUND_COLOR = (10, 10, 10)
+EDITOR_GRID_COLOR = (100, 125, 140)
+EDITOR_GRID_THICKNESS = 1
+EDITOR_ORIGIN_POINT_COLOR = (40, 65, 80)
+EDITOR_ORIGIN_POINT_SIZE = 3
+EDITOR_ORIGIN_POINT_OFFSET_COLOR = (162, 125, 45)
+EDITOR_ORIGIN_POINT_OFFSET_DRAG_INDICATOR_COLOR = (122, 85, 5)
+EDITOR_AUTOMATIC_AUTO_TILE = True
+
+EDITOR_MENU_WIDTH = 100
+EDITOR_MENU_OPACITY = 120
+EDITOR_MENU_HOVER_OPACITY = EDITOR_MENU_OPACITY + 40
+EDITOR_MENU_OPACITY_CHANGE_SPEED = 10
+EDITOR_MENU_TOP_COLOR = (0, 25, 40)
+EDITOR_MENU_BOTTOM_COLOR = (10, 35, 50)
+EDITOR_MENU_DIVIDER_COLOR = (30, 55, 70)
+EDITOR_MENU_TILE_TRANSPARENT = False
+EDITOR_MENU_TILE_GROUP_MARGIN = 10
+EDITOR_MENU_TILE_GROUP_SELECTED_COLOR = (90, 115, 130)
+EDITOR_MENU_TILE_GROUP_HOVERED_RAISE = 1.4
+
+TILE_NEIGHBOR_OFFSETS = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (0, 0), (-1, 1), (0, 1), (1, 1)]
+AUTOTILE_MAP = {
+    tuple(sorted([(1, 0), (0, 1)])): 0,
+    tuple(sorted([(1, 0), (0, 1), (-1, 0)])): 1,
+    tuple(sorted([(-1, 0), (0, 1)])): 2,
+    tuple(sorted([(-1, 0), (0, -1), (0, 1)])): 3,
+    tuple(sorted([(-1, 0), (0, -1)])): 4,
+    tuple(sorted([(-1, 0), (0, -1), (1, 0)])): 5,
+    tuple(sorted([(1, 0), (0, -1)])): 6,
+    tuple(sorted([(1, 0), (0, -1), (0, 1)])): 7,
+    tuple(sorted([(1, 0), (-1, 0), (0, 1), (0, -1)])): 8,
+}
+
+PHYSICS_TILES = {'grass', 'stone'}
+AUTO_TILES = {'grass', 'stone'}

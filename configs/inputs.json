@@ -1,0 +1,121 @@
+{
+  "all": {
+    "quit": {
+      "key": {
+        "ord": [27],
+        "held": [],
+        "prior": [],
+        "exclusive": true,
+        "continuous": false
+      },
+      "window": {
+        "ord": [256],
+        "held": [],
+        "prior": [],
+        "exclusive": true,
+        "continuous": false
+      }
+    },
+    "full_screen": {
+      "key": {
+        "ord": [102],
+        "held": [],
+        "prior": [],
+        "exclusive": true,
+        "continuous": false
+      }
+    }
+  },
+  "editor": {
+    "place_tile": {
+      "mouse": {
+        "ord": [1],
+        "held": [],
+        "prior": [],
+        "exclusive": true,
+        "continuous": false
+      }
+    },
+    "remove_tile": {
+      "mouse": {
+        "ord": [3],
+        "held": [],
+        "prior": [],
+        "exclusive": true,
+        "continuous": true
+      }
+    },
+    "pan_camera_mouse": {
+      "mouse": {
+        "ord": [2],
+        "held": [],
+        "prior": [],
+        "exclusive": true,
+        "continuous": true
+      }
+    },
+    "pan_camera_up": {
+      "mouse": {
+        "ord": [4],
+        "held": [],
+        "prior": [],
+        "exclusive": true,
+        "continuous": false
+      }
+    },
+    "pan_camera_down": {
+      "mouse": {
+        "ord": [5],
+        "held": [],
+        "prior": [],
+        "exclusive": true,
+        "continuous": false
+      }
+    },
+    "pan_camera_left": {
+      "mouse": {
+        "ord": [4],
+        "held": [],
+        "prior": [6],
+        "exclusive": true,
+        "continuous": false
+      }
+    },
+    "pan_camera_right": {
+      "mouse": {
+        "ord": [5],
+        "held": [],
+        "prior": [6],
+        "exclusive": true,
+        "continuous": false
+      }
+    },
+    "reset_scroll": {
+      "key": {
+        "ord": [114],
+        "held": [],
+        "prior": [],
+        "exclusive": true,
+        "continuous": false
+      }
+    },
+    "save": {
+      "key": {
+        "ord": [115],
+        "held": [1073742048, 1073742052],
+        "prior": [],
+        "exclusive": true,
+        "continuous": false
+      }
+    },
+    "load": {
+      "key": {
+        "ord": [111],
+        "held": [1073742048, 1073742052],
+        "prior": [],
+        "exclusive": true,
+        "continuous": false
+      }
+    }
+  }
+}
