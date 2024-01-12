@@ -326,16 +326,22 @@ class Editor:
                         'pos': Vector(mouse_pos) + self.scroll_offset
                     })
 
-                # menu asset group selection
-                for tile_group_name, tile_group in self.menu.top.tile_groups.items():
-                    if tile_group.collide(mouse_pos, self.menu.top.scroll_offset):
-                        tile_group.select()
-                        self.tile_group_active = self.tile_list.index(tile_group_name)
-                        self.tile_variant_active = 0
+                # menu top asset group selection
+                if mouse_pos[1] < self.menu.top.size[1]:
+                    for tile_group_name, tile_group in self.menu.top.tile_groups.items():
+                        if tile_group.collide(mouse_pos, self.menu.top.scroll_offset):
+                            tile_group.select()
+                            self.menu.bottom.tile_groups[tile_group_name].select()
 
-                        for other_tile_group_name, other_tile_group in self.menu.top.tile_groups.items():
-                            if other_tile_group_name != tile_group_name:
-                                other_tile_group.deselect()
+                            self.tile_group_active = self.tile_list.index(tile_group_name)
+                            self.tile_variant_active = 0
+
+                            for other_tile_group_name, other_tile_group in self.menu.top.tile_groups.items():
+                                if other_tile_group_name != tile_group_name:
+                                    other_tile_group.deselect()
+                                    self.menu.bottom.tile_groups[other_tile_group_name].deselect()
+
+                # menu bottom asset group selection
 
             elif event.button == 2:
                 self.panning_start_pos = mouse_pos
@@ -368,14 +374,22 @@ class Editor:
                     if mouse_pos[0] > self.menu.size[0]:
                         self.scroll[1] -= 1 * SCROLL_SPEED
                     else:
-                        if self.menu.top.scroll[1] != 0:
-                            self.menu.top.scroll[1] -= min(1 * SCROLL_SPEED, self.menu.top.scroll[1])
+                        if mouse_pos[1] < self.menu.top.size[1]:
+                            if self.menu.top.scroll[1] != 0:
+                                self.menu.top.scroll[1] -= min(1 * SCROLL_SPEED, self.menu.top.scroll[1])
+                        else:
+                            if self.menu.bottom.scroll[1] != 0:
+                                self.menu.bottom.scroll[1] -= min(1 * SCROLL_SPEED, self.menu.bottom.scroll[1])
                 if event.button == 5:
                     if mouse_pos[0] > self.menu.size[0]:
                         self.scroll[1] += 1 * SCROLL_SPEED
                     else:
-                        if self.menu.top.contentport[1] - self.menu.top.scroll_offset[1] >= self.menu.top.size[1]:
-                            self.menu.top.scroll[1] += min(1 * SCROLL_SPEED, self.menu.top.contentport[1] - self.menu.top.scroll_offset[1] - self.menu.top.size[1])
+                        if mouse_pos[1] < self.menu.top.size[1]:
+                            if self.menu.top.contentport[1] - self.menu.top.scroll_offset[1] >= self.menu.top.size[1]:
+                                self.menu.top.scroll[1] += min(1 * SCROLL_SPEED, self.menu.top.contentport[1] - self.menu.top.scroll_offset[1] - self.menu.top.size[1])
+                        else:
+                            if self.menu.bottom.contentport[1] - self.menu.bottom.scroll_offset[1] >= self.menu.bottom.size[1]:
+                                self.menu.bottom.scroll[1] += min(1 * SCROLL_SPEED, self.menu.bottom.contentport[1] - self.menu.bottom.scroll_offset[1] - self.menu.bottom.size[1])
 
         if event.type == MOUSEMOTION:
             if self.panning_start_pos:
@@ -575,22 +589,21 @@ class MenuTop(MenuSection):
     def __init__(self, menu, pos, size):
         super().__init__(menu, pos, size, EDITOR_MENU_TOP_COLOR)
 
-        self.contentport = [0, 0]
+        self.contentport = pos
 
         # assets
         self.assets = self.menu.editor.tile_assets
         self.tile_groups = {}
-        self.selected_tile_group = None
         self._load_assets()
 
     def _load_assets(self) -> None:
         """
-        Loads the assets into the menu.
+        Loads the assets into the top section of the menu
 
         :return: None
         """
 
-        self.contentport = [EDITOR_MENU_TILE_GROUP_MARGIN, EDITOR_MENU_TILE_GROUP_MARGIN]
+        self.contentport = [self.contentport[0] + EDITOR_MENU_TILE_GROUP_MARGIN, self.contentport[1] + EDITOR_MENU_TILE_GROUP_MARGIN]
 
         for i, tile_group_name in enumerate(self.assets):
             tile_vars = []
@@ -612,53 +625,73 @@ class MenuTop(MenuSection):
 
     def _update_assets(self, mouse_pos) -> None:
         """
-        Updates the menu sections.
+        Updates the assets on the top menu section
 
-        :param mouse_pos: The mouse position.
+        :param mouse_pos: The mouse position
         :return: None
         """
 
         for tile_group_name, tile_group in self.tile_groups.items():
             if self.size[1] > tile_group.pos[1] - self.scroll_offset[1] > 0:
                 if tile_group.collide(mouse_pos, self.scroll_offset):
-                    tile_group.render(tile_group.cal_spacing(len(tile_group.variants)), len(tile_group.variants), (self.scroll_offset[0], self.scroll_offset[1] + EDITOR_MENU_TILE_GROUP_HOVERED_RAISE))
+                    tile_group.render(len(tile_group.variants), (self.scroll_offset[0], self.scroll_offset[1] + EDITOR_MENU_TILE_HOVERED_RAISE))
                 else:
-                    tile_group.render(tile_group.cal_spacing(len(tile_group.variants)), len(tile_group.variants), self.scroll_offset)
+                    tile_group.render(len(tile_group.variants), self.scroll_offset)
 
 
 class MenuBottom(MenuSection):
     def __init__(self, menu, pos, size):
         super().__init__(menu, pos, size, EDITOR_MENU_BOTTOM_COLOR)
 
-        self.contentport = [0, 0]
+        self.contentport = pos
 
         # assets
         self.assets = self.menu.editor.tile_assets
         self.tile_groups = {}
-        self.selected_tile_group = None
         self._load_assets()
 
     def _load_assets(self) -> None:
         """
-        Loads the assets into the menu.
+        Loads the assets into the top section of the menu
 
         :return: None
         """
 
-        pass
+        self.contentport = [self.contentport[0] + EDITOR_MENU_TILE_GROUP_MARGIN, self.contentport[1] + EDITOR_MENU_TILE_GROUP_MARGIN]
+
+        for i, tile_group_name in enumerate(self.assets):
+            tile_vars = []
+
+            for j, tile_var_img in enumerate(self.assets[tile_group_name].copy()):
+                tile_height = tile_var_img.get_height()
+                tile_vars.append(TileVariant(self, tile_var_img))
+
+            current_pos = self.contentport.copy()
+
+            self.tile_groups[tile_group_name] = TileGroup(self, tile_vars, current_pos)
+
+            if i == 0:
+                self.tile_groups[tile_group_name].default = True
+                self.tile_groups[tile_group_name].select()
+
+            # Move to the next line for the next asset
+            self.contentport[1] += tile_height + EDITOR_MENU_TILE_GROUP_MARGIN
 
     def _update_assets(self, mouse_pos) -> None:
         """
-        Updates the menu sections.
+        Updates the assets on the bottom menu section
 
-        :param mouse_pos: The mouse position.
+        :param mouse_pos: The mouse position
         :return: None
         """
 
         for tile_group_name, tile_group in self.tile_groups.items():
-            if tile_group.selected:
-                # tile_group.render(tile_group.cal_spacing(3), 3, self.bottom.size, self.bottom.scroll_offset)
-                pass
+            if self.size[1] > tile_group.pos[1] - self.scroll_offset[1] > 0:
+                if tile_group.selected:
+                    if tile_group.collide(mouse_pos, self.scroll_offset):
+                        tile_group.render(3, (self.scroll_offset[0], self.scroll_offset[1] + EDITOR_MENU_TILE_HOVERED_RAISE))
+                    else:
+                        tile_group.render(3, self.scroll_offset)
 
 
 class MenuDivider:
@@ -727,16 +760,16 @@ class TileGroup:
         # Calculate the spacing, ensure that the number of gaps is not zero to avoid division by zero
         return available_space / number_of_gaps if number_of_gaps > 0 else 0
 
-    def render(self, spacing, count_per_row, offset=(0, 0)) -> None:
+    def render(self, count_per_row, offset=(0, 0)) -> None:
         """
         Renders the tile groups on one per row with the variants separated by the given spacing
 
-        :param spacing: The spacing between each variant
         :param count_per_row: The number of items to display per row
         :param offset: The offset for the position
         :return: None
         """
 
+        spacing = self.cal_spacing(count_per_row)
         current_pos = [self.pos[0] - offset[0], self.pos[1] - offset[1]]
 
         for i, variant in enumerate(self.variants):
@@ -754,7 +787,7 @@ class TileGroup:
 
         if self.selected:
             # render the overlay with only the size of the visible part of the tile group
-            visible_overlay_height = min(self.display_overlay_original_size[1], self.menu_section.size[1] - current_pos[1] - EDITOR_MENU_TILE_GROUP_HOVERED_RAISE + EDITOR_MENU_TILE_GROUP_MARGIN / 2)
+            visible_overlay_height = min(self.display_overlay_original_size[1], self.menu_section.size[1] - current_pos[1] - EDITOR_MENU_TILE_HOVERED_RAISE + EDITOR_MENU_TILE_GROUP_MARGIN / 2)
             self.display_overlay = pygame.transform.scale(self.display_overlay, (self.display_overlay_original_size[0], visible_overlay_height))
             self.display_overlay.fill(EDITOR_MENU_TILE_GROUP_SELECTED_COLOR)
             self.display.blit(self.display_overlay, ((self.pos[0] - self.display_overlay_inflation / 2) - offset[0], (self.pos[1] - self.display_overlay_inflation / 2) - offset[1]))
