@@ -18,14 +18,12 @@ class Editor:
         self.screen = self.main.screen
         self.clock = self.main.clock
 
-        self.providers['assets']['gfx'].loaddirs(['tiles/grass', 'tiles/stone', 'tiles/decor', 'tiles/large_decor', 'tiles/spawners'])
-
         self.tile_assets = {
-            'grass': self.providers['assets']['gfx'].get_group_as_list('tiles/grass'),
-            'stone': self.providers['assets']['gfx'].get_group_as_list('tiles/stone'),
-            'decor': self.providers['assets']['gfx'].get_group_as_list('tiles/decor'),
-            'large_decor': self.providers['assets']['gfx'].get_group_as_list('tiles/large_decor'),
-            'spawners': self.providers['assets']['gfx'].get_group_as_list('tiles/spawners'),
+            'grass': self.providers['files'].readimgdir('tiles/grass'),
+            'stone': self.providers['files'].readimgdir('tiles/stone'),
+            'decor': self.providers['files'].readimgdir('tiles/decor'),
+            'large_decor': self.providers['files'].readimgdir('tiles/large_decor'),
+            'spawners': self.providers['files'].readimgdir('tiles/spawners'),
         }
 
         self.movements = {
