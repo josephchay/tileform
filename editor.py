@@ -1,3 +1,4 @@
+import pygame.draw
 from pygame.locals import *
 from pygame.math import Vector2 as Vector
 
@@ -59,6 +60,7 @@ class Editor:
         self.back = False
         self.ctrl = False
         self.shift = False
+        self.panning = False
         self.panning_start_pos = None
 
         self.ongrid = True
@@ -70,7 +72,7 @@ class Editor:
         self.display.fill(EDITOR_BACKGROUND_COLOR)
 
         if self.scroll_reset:
-            self._update_scroll_reset(dt)
+            self.update_scroll_reset(dt)
 
         key_scroll = Vector(
             (self.movements['right'] - self.movements['left']) * KEY_SCROLL_SPEED,
@@ -118,33 +120,34 @@ class Editor:
         :return: None
         """
 
-        if self.clicking and self.ongrid:
-            tile_loc = f"{tile_pos[0]};{tile_pos[1]}"
-            self.tilemap.map[tile_loc] = {
-                'type': self.tile_list[self.tile_group_active],
-                'variant': self.tile_variant_active,
-                'pos': tile_pos
-            }
-
-            if EDITOR_AUTOMATIC_AUTO_TILE:
-                self.tilemap.autotile()
-
-        if self.right_clicking:
-            tile_loc = f"{tile_pos[0]};{tile_pos[1]}"
-
-            # Remove the tile if it exists
-            if tile_loc in self.tilemap.map:
-                del self.tilemap.map[tile_loc]
+        if not self.panning:
+            if self.clicking and self.ongrid:
+                tile_loc = f"{tile_pos[0]};{tile_pos[1]}"
+                self.tilemap.map[tile_loc] = {
+                    'type': self.tile_list[self.tile_group_active],
+                    'variant': self.tile_variant_active,
+                    'pos': tile_pos
+                }
 
                 if EDITOR_AUTOMATIC_AUTO_TILE:
                     self.tilemap.autotile()
 
-            for tile in self.tilemap.freeform_tiles.copy():
-                tile_image = self.tile_assets[tile['type']][tile['variant']]
-                tile_rect = pygame.Rect(tile['pos'][0] - self.scroll_offset[0], tile['pos'][1] - self.scroll_offset[1], tile_image.get_width(), tile_image.get_height())
+            if self.right_clicking:
+                tile_loc = f"{tile_pos[0]};{tile_pos[1]}"
 
-                if tile_rect.collidepoint(mouse_pos):
-                    self.tilemap.freeform_tiles.remove(tile)
+                # Remove the tile if it exists
+                if tile_loc in self.tilemap.map:
+                    del self.tilemap.map[tile_loc]
+
+                    if EDITOR_AUTOMATIC_AUTO_TILE:
+                        self.tilemap.autotile()
+
+                for tile in self.tilemap.freeform_tiles.copy():
+                    tile_image = self.tile_assets[tile['type']][tile['variant']]
+                    tile_rect = pygame.Rect(tile['pos'][0] - self.scroll_offset[0], tile['pos'][1] - self.scroll_offset[1], tile_image.get_width(), tile_image.get_height())
+
+                    if tile_rect.collidepoint(mouse_pos):
+                        self.tilemap.freeform_tiles.remove(tile)
 
     def _update_grid(self, mouse_pos):
         cols = self.display.get_width() // TILE_SIZE
@@ -304,7 +307,7 @@ class Editor:
             self.draggable = False
             self.main.cursorize()
 
-    def handle_press_events(self, event, mouse_pos) -> None:
+    def handle_events(self, event, mouse_pos) -> None:
         """
         Handle events for mouse scrolling, presses and key presses.
 
@@ -317,31 +320,19 @@ class Editor:
             if event.button == 1:
                 self.clicking = True
 
-                if not self.ongrid:
-                    self.tilemap.freeform_tiles.append({
-                        'type': self.tile_list[self.tile_group_active],
-                        'variant': self.tile_variant_active,
-                        'pos': Vector(mouse_pos) + self.scroll_offset
-                    })
+                if not self.panning:
+                    if not self.ongrid:
+                        self.tilemap.freeform_tiles.append({
+                            'type': self.tile_list[self.tile_group_active],
+                            'variant': self.tile_variant_active,
+                            'pos': Vector(mouse_pos) + self.scroll_offset
+                        })
 
-                # menu top asset group selection
-                if mouse_pos[1] < self.menu.top.size[1]:
-                    for tile_group_name, tile_group in self.menu.top.tile_groups.items():
-                        if tile_group.collide(mouse_pos, self.menu.top.scroll_offset):
-                            tile_group.select()
-                            self.menu.bottom.tile_groups[tile_group_name].select()
-
-                            self.tile_group_active = self.tile_list.index(tile_group_name)
-                            self.tile_variant_active = 0
-
-                            for other_tile_group_name, other_tile_group in self.menu.top.tile_groups.items():
-                                if other_tile_group_name != tile_group_name:
-                                    other_tile_group.deselect()
-                                    self.menu.bottom.tile_groups[other_tile_group_name].deselect()
-
-                # menu bottom asset group selection
+                if self.menu.pos[0] <= mouse_pos[0] <= (self.menu.pos[0] + self.menu.size[0]):
+                    self.handle_menu_assets_events(mouse_pos)
 
             elif event.button == 2:
+                self.panning = True
                 self.panning_start_pos = mouse_pos
             elif event.button == 3:
                 self.right_clicking = True
@@ -349,24 +340,29 @@ class Editor:
                 self.back = not self.back
 
             if self.back:
+                if self.clicking:
+                    self.panning = True
+                    self.panning_start_pos = mouse_pos
+
                 if event.button == 4:
                     if mouse_pos[0] > self.menu.size[0]:
                         self.scroll[0] -= 1 * SCROLL_SPEED
                 if event.button == 5:
                     if mouse_pos[0] > self.menu.size[0]:
                         self.scroll[0] += 1 * SCROLL_SPEED
-            elif self.ctrl and self.shift:
-                if event.button == 4:
-                    self.tile_variant_active = (self.tile_variant_active - 1) % len(self.tile_assets[self.tile_list[self.tile_group_active]])
-                if event.button == 5:
-                    self.tile_variant_active = (self.tile_variant_active + 1) % len(self.tile_assets[self.tile_list[self.tile_group_active]])
             elif self.ctrl:
-                if event.button == 4:
-                    self.tile_group_active = (self.tile_group_active - 1) % len(self.tile_list)
-                    self.tile_variant_active = 0
-                if event.button == 5:
-                    self.tile_group_active = (self.tile_group_active + 1) % len(self.tile_list)
-                    self.tile_variant_active = 0
+                if self.shift:
+                    if event.button == 4:
+                        self.scroll_tile_variant(-1)
+                    if event.button == 5:
+                        self.scroll_tile_variant(1)
+                    self.swap_tile_variant(self.tile_list[self.tile_group_active], self.tile_variant_active)
+                else:
+                    if event.button == 4:
+                        self.scroll_tile_group(-1)
+                    if event.button == 5:
+                        self.scroll_tile_group(1)
+                    self.swap_tile_group(self.tile_list[self.tile_group_active])
             else:
                 if event.button == 4:
                     if mouse_pos[0] > self.menu.size[0]:
@@ -379,18 +375,18 @@ class Editor:
                             if self.menu.bottom.scroll[1] != 0:
                                 self.menu.bottom.scroll[1] -= min(1 * SCROLL_SPEED, self.menu.bottom.scroll[1])
                 if event.button == 5:
-                    if mouse_pos[0] > self.menu.size[0]:
-                        self.scroll[1] += 1 * SCROLL_SPEED
-                    else:
-                        if mouse_pos[1] < self.menu.top.size[1]:
+                    if self.menu.pos[0] <= mouse_pos[0] <= (self.menu.pos[0] + self.menu.size[0]):
+                        if self.menu.top.pos[1] <= mouse_pos[1] <= (self.menu.top.pos[1] + self.menu.top.size[1]):
                             if self.menu.top.contentport[1] - self.menu.top.scroll_offset[1] >= self.menu.top.size[1]:
                                 self.menu.top.scroll[1] += min(1 * SCROLL_SPEED, self.menu.top.contentport[1] - self.menu.top.scroll_offset[1] - self.menu.top.size[1])
                         else:
                             if self.menu.bottom.contentport[1] - self.menu.bottom.scroll_offset[1] >= self.menu.bottom.size[1]:
                                 self.menu.bottom.scroll[1] += min(1 * SCROLL_SPEED, self.menu.bottom.contentport[1] - self.menu.bottom.scroll_offset[1] - self.menu.bottom.size[1])
+                    else:
+                        self.scroll[1] += 1 * SCROLL_SPEED
 
         if event.type == MOUSEMOTION:
-            if self.panning_start_pos:
+            if self.panning:
                 if mouse_pos[0] > self.menu.size[0]:
                     pan_offset = Vector(mouse_pos) - self.panning_start_pos
 
@@ -401,8 +397,13 @@ class Editor:
         if event.type == MOUSEBUTTONUP:
             if event.button == 1:
                 self.clicking = False
+
+                if self.panning:
+                    self.panning_start_pos = None
+                    self.panning = False
             elif event.button == 2:
                 self.panning_start_pos = None
+                self.panning = False
             elif event.button == 3:
                 self.right_clicking = False
 
@@ -413,7 +414,7 @@ class Editor:
                 self.ctrl = True
 
             if event.key == K_r:
-                self._start_reset_scroll((0, 0), 1.0)
+                self.start_reset_scroll((0, 0), 1.0)
 
             if self.ctrl:
                 if event.key == K_s:
@@ -451,7 +452,100 @@ class Editor:
             if event.key == K_s:
                 self.movements['down'] = False
 
-    def _start_reset_scroll(self, target_position, duration):
+    def handle_menu_assets_events(self, mouse_pos) -> None:
+        """
+        Handle events for the menu assets.
+
+        :param mouse_pos: The position of the mouse
+        :return: None
+        """
+
+        # menu top
+        if self.menu.top.pos[1] <= mouse_pos[1] <= (self.menu.top.pos[1] + self.menu.top.size[1]):
+            for tile_group_name, tile_group in self.menu.top.tile_groups.items():
+                if tile_group.collide(mouse_pos, self.menu.top.scroll_offset):
+                    self.swap_tile_group(tile_group_name)
+
+        # menu divider
+        elif self.menu.divider.pos[1] <= mouse_pos[1] <= (self.menu.divider.pos[1] + self.menu.divider.size[1]):
+            pass
+
+        # menu bottom
+        else:
+            for tile_group_name, tile_group in self.menu.bottom.tile_groups.items():
+                if tile_group.selected:
+                    for i, tile_variant in enumerate(tile_group.variants):
+                        if tile_variant.collide(mouse_pos, self.menu.bottom.scroll_offset):
+                            self.swap_tile_variant(tile_group_name, i)
+
+    def scroll_tile_group(self, direction: int) -> None:
+        """
+        Scroll the tile group in the given direction.
+
+        :param direction: The direction to scroll the tile group in.
+        :return: None
+        """
+
+        self.tile_group_active = (self.tile_group_active + direction) % len(self.tile_list)
+
+    def swap_tile_group(self, group: str) -> None:
+        """
+        Swap the tile group in the given direction.
+
+        :param group: The tile group to swap to
+        :return: None
+        """
+
+        if self.tile_list[self.tile_group_active] != group:
+            self.tile_group_active = self.tile_list.index(group)
+
+        for other_tile_group_name, other_tile_group in self.menu.top.tile_groups.items():
+            if other_tile_group_name != group:
+                other_tile_group.selected = False
+                other_tile_group.overlay = False
+                self.menu.bottom.tile_groups[other_tile_group_name].selected = False
+
+        self.menu.top.tile_groups[group].selected = True
+        self.menu.top.tile_groups[group].overlay = True
+        self.menu.bottom.tile_groups[group].selected = True
+
+        self.tile_variant_active = 0
+
+    def scroll_tile_variant(self, direction: int) -> None:
+        """
+        Scroll the tile variant in the given direction.
+
+        :param direction: The direction to scroll the tile variant in.
+        :return: None
+        """
+
+        self.tile_variant_active = (self.tile_variant_active + direction) % len(self.tile_assets[self.tile_list[self.tile_group_active]])
+
+    def swap_tile_variant(self, group: str, variant: int) -> None:
+        """
+        Swap the tile variant in the given direction.
+
+        :param group: The tile group the variant belongs to
+        :param variant: The variant to swap to
+        :return: None
+        """
+
+        if self.tile_list[self.tile_group_active] != group:
+            self.tile_group_active = self.tile_list.index(group)
+
+        if self.tile_variant_active != variant:
+            self.tile_variant_active = variant
+
+        for other_tile_variant in self.menu.bottom.tile_groups[group].variants:
+            other_tile_variant.selected = False
+            other_tile_variant.overlay = False
+            self.menu.top.tile_groups[group].variants[variant].selected = False
+
+        self.menu.bottom.tile_groups[group].variants[variant].selected = True
+        self.menu.bottom.tile_groups[group].variants[variant].overlay = True
+        self.menu.top.tile_groups[group].variants[variant].selected = True
+
+    def start_reset_scroll(self, target_position, duration):
         """
         Initialize the scroll reset process with the target position and the duration.
 
@@ -464,7 +558,7 @@ class Editor:
         self.scroll_transition_elapsed = 0
         self.scroll_reset = True
 
-    def _update_scroll_reset(self, dt):
+    def update_scroll_reset(self, dt):
         """
         Update the scroll position smoothly towards the target position.
 
@@ -552,6 +646,8 @@ class MenuSection:
         self.scroll = Vector()
         self.scroll_offset = Vector()
 
+        self.tile_group_margin = TileGroup.margin
+
     def render(self, mouse_pos, dt) -> None:
         scroll_velocity = Vector()
 
@@ -565,11 +661,21 @@ class MenuSection:
         self.display.fill(self.color)
 
         if EDITOR_MENU_TILE_TRANSPARENT:
-            self._update_assets(mouse_pos)
+            self.update(mouse_pos)
             self.menu.display.blit(self.display, self.pos)
         else:
             self.menu.display.blit(self.display, self.pos)
-            self._update_assets(mouse_pos)
+            self.update(mouse_pos)
+
+    def update(self, mouse_pos) -> None:
+        """
+        Updates the respective menu section
+
+        :param mouse_pos: The position of the mouse.
+        :return: None
+        """
+
+        self._update_assets(mouse_pos)
 
     def _update_assets(self, mouse_pos) -> None:
         """
@@ -592,6 +698,8 @@ class MenuTop(MenuSection):
         # assets
         self.assets = self.menu.editor.tile_assets
         self.tile_groups = {}
+        self.tile_groups_list = []
+
         self._load_assets()
 
     def _load_assets(self) -> None:
@@ -601,25 +709,28 @@ class MenuTop(MenuSection):
         :return: None
         """
 
-        self.contentport = [self.contentport[0] + EDITOR_MENU_TILE_GROUP_MARGIN, self.contentport[1] + EDITOR_MENU_TILE_GROUP_MARGIN]
+        self.contentport = [self.contentport[0] + self.tile_group_margin, self.contentport[1] + self.tile_group_margin]
 
         for i, tile_group_name in enumerate(self.assets):
-            tile_vars = []
+            tile_variants = []
 
             for j, tile_var_img in enumerate(self.assets[tile_group_name].copy()):
                 tile_height = tile_var_img.get_height()
-                tile_vars.append(TileVariant(self, tile_var_img))
+                tile_variants.append(TileVariant(self, tile_var_img))
 
             current_pos = self.contentport.copy()
 
-            self.tile_groups[tile_group_name] = TileGroup(self, tile_vars, current_pos)
+            self.tile_groups[tile_group_name] = TileGroup(self, tile_variants, current_pos)
 
             if i == 0:
                 self.tile_groups[tile_group_name].default = True
-                self.tile_groups[tile_group_name].select()
+                self.tile_groups[tile_group_name].selected = True
+                self.tile_groups[tile_group_name].overlay = True
 
             # Move to the next line for the next asset
-            self.contentport[1] += tile_height + EDITOR_MENU_TILE_GROUP_MARGIN
+            self.contentport[1] += tile_height + self.tile_group_margin
+
+        self.tile_groups_list = list(self.tile_groups)
 
     def _update_assets(self, mouse_pos) -> None:
         """
@@ -641,11 +752,16 @@ class MenuBottom(MenuSection):
     def __init__(self, menu, pos, size):
         super().__init__(menu, pos, size, EDITOR_MENU_BOTTOM_COLOR)
 
-        self.contentport = pos
-
         # assets
         self.assets = self.menu.editor.tile_assets
+
+        self.contentports = {}
+        for tile_group_name in self.assets:
+            self.contentports[tile_group_name] = pos
+
         self.tile_groups = {}
+        self.tile_groups_list = []
+
         self._load_assets()
 
     def _load_assets(self) -> None:
@@ -655,14 +771,21 @@ class MenuBottom(MenuSection):
         :return: None
         """
 
-        self.contentport = [self.contentport[0] + EDITOR_MENU_TILE_GROUP_MARGIN, self.contentport[1] + EDITOR_MENU_TILE_GROUP_MARGIN]
-
         for i, tile_group_name in enumerate(self.assets):
+            self.contentport = self.contentports[tile_group_name]
+            self.contentport = [self.contentport[0] + self.tile_group_margin, self.contentport[1] + self.tile_group_margin]
+
             tile_vars = []
 
             for j, tile_var_img in enumerate(self.assets[tile_group_name].copy()):
                 tile_height = tile_var_img.get_height()
-                tile_vars.append(TileVariant(self, tile_var_img))
+                tile_variant = TileVariant(self, tile_var_img)
+
+                if j == 0:
+                    tile_variant.selected = True
+                    tile_variant.overlay = True
+
+                tile_vars.append(tile_variant)
 
             current_pos = self.contentport.copy()
 
@@ -670,10 +793,12 @@ class MenuBottom(MenuSection):
 
             if i == 0:
                 self.tile_groups[tile_group_name].default = True
-                self.tile_groups[tile_group_name].select()
+                self.tile_groups[tile_group_name].selected = True
 
-            # Move to the next line for the next asset
-            self.contentport[1] += tile_height + EDITOR_MENU_TILE_GROUP_MARGIN
+            self.contentport[1] += (tile_height + self.tile_group_margin) * (len(self.assets[tile_group_name]) / EDITOR_MENU_MAX_TILE_VARIANT_COUNT_PER_ROW)
+            self.contentports[tile_group_name] = self.contentport
+
+        self.tile_groups_list = list(self.tile_groups)
 
     def _update_assets(self, mouse_pos) -> None:
         """
@@ -686,10 +811,7 @@ class MenuBottom(MenuSection):
         for tile_group_name, tile_group in self.tile_groups.items():
             if self.size[1] > tile_group.pos[1] - self.scroll_offset[1] > 0:
                 if tile_group.selected:
-                    if tile_group.collide(mouse_pos, self.scroll_offset):
-                        tile_group.render(3, (self.scroll_offset[0], self.scroll_offset[1] + EDITOR_MENU_TILE_HOVERED_RAISE))
-                    else:
-                        tile_group.render(3, self.scroll_offset)
+                    tile_group.render(EDITOR_MENU_MAX_TILE_VARIANT_COUNT_PER_ROW, self.scroll_offset)
 
 
 class MenuDivider:
@@ -707,6 +829,8 @@ class MenuDivider:
 
 
 class TileGroup:
+    margin = EDITOR_MENU_TILE_GROUP_MARGIN
+
     def __init__(self, menu_section, variants: list, pos):
         """
         A group of its tiles variants in the menu.
@@ -726,6 +850,7 @@ class TileGroup:
 
         self.default = False
         self.selected = False
+        self.overlay = False
 
         # overlay
         self.display_overlay_inflation = 6
@@ -738,55 +863,62 @@ class TileGroup:
 
         self.display_overlay_original_size = self.size[0] + self.display_overlay_inflation, self.size[1] + self.display_overlay_inflation
         self.display_overlay = pygame.Surface(self.display_overlay_original_size, SRCALPHA)
-        self.display_overlay.set_alpha(140)
+        self.display_overlay.set_alpha(EDITOR_MENU_TILE_OVERLAY_OPACITY)
 
-    def cal_spacing(self, count) -> int:
+    def cal_row_spacing(self, max_count_per_row) -> int:
         """
-        Calculates the spacing between each variant.
+        Calculates the spacing between each variant to evenly distribute them across the row.
 
-        :param count: The number of variants
+        :param max_count_per_row: The maximum number of variants to display per row
         :return: The spacing between each variant
         """
 
-        # total width of the images without spacing
-        total_images_width = sum(variant.img.get_width() for variant in self.variants)
-        # number of gaps between the images as one less than the number of images
-        number_of_gaps = max(count - 1, 0)
+        if max_count_per_row <= 1:
+            return 0
 
-        available_space = self.menu_section.size[0] - (EDITOR_MENU_TILE_GROUP_MARGIN * 2) - total_images_width
+        total_variants = len(self.variants)
 
-        # Calculate the spacing, ensure that the number of gaps is not zero to avoid division by zero
-        return available_space / number_of_gaps if number_of_gaps > 0 else 0
+        if total_variants >= max_count_per_row:
+            # Calculate total width for the variants in the row
+            total_images_width_per_row = sum(variant.img.get_width() for variant in self.variants[:max_count_per_row])
 
-    def render(self, count_per_row, offset=(0, 0)) -> None:
+            available_space = self.menu_section.size[0] - (TileGroup.margin * 2) - total_images_width_per_row
+            total_gaps = max(max_count_per_row - 1, 0)  # Gaps between variants in a row
+
+            return available_space / total_gaps if total_gaps > 0 else 0
+        else:
+            # If total_variants is less than max_count_per_row, evenly distribute the space without gaps
+            available_space = self.menu_section.size[0] - (TileGroup.margin * 2) - sum(variant.img.get_width() for variant in self.variants)
+
+            return available_space / (total_variants - 1) if total_variants > 1 else 0
+
+    def render(self, max_count_per_row, offset=(0, 0)) -> None:
         """
         Renders the tile groups on one per row with the variants separated by the given spacing
 
-        :param count_per_row: The number of items to display per row
+        :param max_count_per_row: The maximum number of items to display per row
         :param offset: The offset for the position
         :return: None
         """
 
-        spacing = self.cal_spacing(count_per_row)
-        current_pos = [self.pos[0] - offset[0], self.pos[1] - offset[1]]
+        spacing = self.cal_row_spacing(max_count_per_row)
+        offset_pos = [self.pos[0] - offset[0], self.pos[1] - offset[1]]
 
         for i, variant in enumerate(self.variants):
-            if i > 0 and i % count_per_row == 0:
-                current_pos[0] = self.pos[0] - offset[0]
-                current_pos[1] += self.variants[i - 1].img.get_height() + EDITOR_MENU_TILE_GROUP_MARGIN
+            if i > 0 and i % max_count_per_row == 0:
+                offset_pos[0] = self.pos[0] - offset[0]
+                offset_pos[1] += self.variants[i - 1].img.get_height() + TileGroup.margin
 
-            if current_pos[1] <= self.menu_section.size[1]:
-                # render the visible part of the image
-                visible_height = min(variant.img.get_height(), self.menu_section.size[1] - current_pos[1])
-                visible_subsurface = variant.img.subsurface(pygame.Rect(0, 0, variant.img.get_width(), visible_height))
-                self.display.blit(visible_subsurface, current_pos)
+            if offset_pos[1] <= self.menu_section.size[1]:
+                variant.pos = offset_pos.copy()
+                variant.render()
 
-            current_pos[0] += self.variants[i].img.get_width() + spacing
+            offset_pos[0] += self.variants[i].img.get_width() + spacing
 
-        if self.selected:
+        if self.selected and self.overlay:
             # render the overlay with only the size of the visible part of the tile group
-            visible_overlay_height = min(self.display_overlay_original_size[1], self.menu_section.size[1] - current_pos[1] - EDITOR_MENU_TILE_HOVERED_RAISE + EDITOR_MENU_TILE_GROUP_MARGIN / 2)
-            self.display_overlay = pygame.transform.scale(self.display_overlay, (self.display_overlay_original_size[0], visible_overlay_height))
+            visible_overlay_height = min(self.display_overlay_original_size[1], self.menu_section.size[1] - offset_pos[1] - EDITOR_MENU_TILE_HOVERED_RAISE + TileGroup.margin / 2)
+            self.display_overlay = pygame.transform.scale(self.display_overlay,(self.display_overlay_original_size[0], visible_overlay_height))
             self.display_overlay.fill(EDITOR_MENU_TILE_GROUP_SELECTED_COLOR)
             self.display.blit(self.display_overlay, ((self.pos[0] - self.display_overlay_inflation / 2) - offset[0], (self.pos[1] - self.display_overlay_inflation / 2) - offset[1]))
 
@@ -801,27 +933,9 @@ class TileGroup:
 
         return self.pos[0] - offset[0] <= point[0] < self.pos[0] + self.size[0] - offset[0] and self.pos[1] - offset[1] <= point[1] < self.pos[1] + self.size[1] - offset[1]
 
-    def select(self):
-        """
-        Indicates this asset group has been selected.
-
-        :return: None
-        """
-
-        self.selected = True
-
-    def deselect(self):
-        """
-        Indicates this asset group has been deselected.
-
-        :return: None
-        """
-
-        self.selected = False
-
 
 class TileVariant:
-    def __init__(self, menu_section, img: pygame.Surface):
+    def __init__(self, menu_section, img: pygame.Surface, pos=None):
         """
         A variant of a tile group
 
@@ -829,10 +943,46 @@ class TileVariant:
         :param img: The image of the variant
         """
 
+        self.pos = pos
+
         self.menu_section = menu_section
         self.img = img
+        self.margin = EDITOR_MENU_TILE_GROUP_MARGIN
 
         self.display = self.menu_section.display if EDITOR_MENU_TILE_TRANSPARENT else self.menu_section.menu.display
 
+        self.default = False
+        self.selected = False
+        self.overlay = False
+
+        # overlay
+        self.display_overlay_inflation = 6
+        self.size = self.img.get_width(), self.img.get_height()
+
+        self.display_overlay_original_size = self.size[0] + self.display_overlay_inflation, self.size[1] + self.display_overlay_inflation
+        self.display_overlay = pygame.Surface(self.display_overlay_original_size, SRCALPHA)
+        self.display_overlay.set_alpha(EDITOR_MENU_TILE_OVERLAY_OPACITY)
+
     def render(self, offset=(0, 0)):
-        pass
+        # render the visible part of the image
+        visible_height = min(self.img.get_height(), self.menu_section.pos[1] + self.menu_section.size[1] - self.pos[1] - offset[1])
+        visible_subsurface = self.img.subsurface(pygame.Rect(0, 0, self.img.get_width(), visible_height))
+        self.display.blit(visible_subsurface, (self.pos[0] - offset[0], self.pos[1] - offset[1]))
+
+        if self.selected and self.overlay:
+            # render the overlay with only the size of the visible part of the tile group
+            visible_overlay_height = min(self.display_overlay_original_size[1], self.menu_section.pos[1] + self.menu_section.size[1] - self.pos[1] - EDITOR_MENU_TILE_HOVERED_RAISE + TileGroup.margin / 2)
+            self.display_overlay = pygame.transform.scale(self.display_overlay,(self.display_overlay_original_size[0], visible_overlay_height))
+            self.display_overlay.fill(EDITOR_MENU_TILE_GROUP_SELECTED_COLOR)
+            self.display.blit(self.display_overlay, ((self.pos[0] - self.display_overlay_inflation / 2) - offset[0], (self.pos[1] - self.display_overlay_inflation / 2) - offset[1]))
+
+    def collide(self, point: tuple | list, offset=(0, 0)) -> bool:
+        """
+        Check whether the given position collides with the menu asset group.
+
+        :param point: The position to check.
+        :param offset: The offset of the menu top section
+        :return: True if the mouse is in the menu asset group, False otherwise.
+        """
+
+        return self.pos[0] - offset[0] <= point[0] < self.pos[0] + self.size[0] - offset[0] and self.pos[1] - offset[1] <= point[1] < self.pos[1] + self.size[1] - offset[1]

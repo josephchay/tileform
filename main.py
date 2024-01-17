@@ -56,7 +56,7 @@ class Main:
                     sys.exit()
 
                 if self.editor_active:
-                    self.editor.handle_press_events(event, mouse_pos)
+                    self.editor.handle_events(event, mouse_pos)
 
             if self.editor_active:
                 self.editor.run(mouse_pos, dt)
