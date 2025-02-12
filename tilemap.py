@@ -3,7 +3,7 @@ import pygame
 import tkinter as tk
 from tkinter import filedialog
 
-from settings import *
+from constants import *
 
 
 class Tilemap:

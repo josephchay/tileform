@@ -1,10 +1,9 @@
 import sys
-from dotenv import load_dotenv
 
 from pygame.math import Vector2 as Vector
 
-from settings import *
-from core.filesystem import *
+from constants import *
+from pygine.filesystem import *
 from utils.helpers import *
 from editor import Editor
 
@@ -13,10 +12,8 @@ class Main:
     def __init__(self):
         """ The main constructor """
 
-        load_dotenv()
-
         pygame.init()
-        pygame.display.set_caption(os.getenv('APP_NAME'))
+        pygame.display.set_caption(APP_NAME)
 
         self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.display = pygame.Surface((WINDOW_WIDTH / RENDER_SCALE, WINDOW_HEIGHT / RENDER_SCALE))

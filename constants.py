@@ -1,4 +1,16 @@
+import os
+
+from dotenv import load_dotenv
+
 from utils.helpers import tone_color
+
+load_dotenv()
+
+APP_NAME = os.getenv('APP_NAME')
+APP_ENV = os.getenv('APP_ENV')
+APP_KEY = os.getenv('APP_KEY')
+APP_DEBUG = os.getenv('APP_DEBUG')
+APP_URL = os.getenv('APP_URL')
 
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 704

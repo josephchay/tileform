@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added event handler class (prototype) accompanied with JSON file for input event data
 - Fullscreen transition (prototype)
 
+- Initial file for the stages for the custom engine called `pygine` dir.
+- Constant values in `constants.py`.
+
 ### Changed
 
 - Heavy changes on level editor

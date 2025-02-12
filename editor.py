@@ -2,7 +2,7 @@ import pygame.draw
 from pygame.locals import *
 from pygame.math import Vector2 as Vector
 
-from settings import *
+from constants import *
 from tilemap import Tilemap
 from utils.helpers import *
 
@@ -743,9 +743,9 @@ class MenuTop(MenuSection):
         for tile_group_name, tile_group in self.tile_groups.items():
             if self.size[1] > tile_group.pos[1] - self.scroll_offset[1] > 0:
                 if tile_group.collide(mouse_pos, self.scroll_offset):
-                    tile_group.render(len(tile_group.variants), (self.scroll_offset[0], self.scroll_offset[1] + EDITOR_MENU_TILE_HOVERED_RAISE))
+                    tile_group.render(len(tile_group.variants), mouse_pos, (self.scroll_offset[0], self.scroll_offset[1] + EDITOR_MENU_TILE_HOVERED_RAISE))
                 else:
-                    tile_group.render(len(tile_group.variants), self.scroll_offset)
+                    tile_group.render(len(tile_group.variants), mouse_pos, self.scroll_offset)
 
 
 class MenuBottom(MenuSection):
@@ -811,7 +811,7 @@ class MenuBottom(MenuSection):
         for tile_group_name, tile_group in self.tile_groups.items():
             if self.size[1] > tile_group.pos[1] - self.scroll_offset[1] > 0:
                 if tile_group.selected:
-                    tile_group.render(EDITOR_MENU_MAX_TILE_VARIANT_COUNT_PER_ROW, self.scroll_offset)
+                    tile_group.render(EDITOR_MENU_MAX_TILE_VARIANT_COUNT_PER_ROW, mouse_pos, self.scroll_offset)
 
 
 class MenuDivider:
@@ -892,11 +892,12 @@ class TileGroup:
 
             return available_space / (total_variants - 1) if total_variants > 1 else 0
 
-    def render(self, max_count_per_row, offset=(0, 0)) -> None:
+    def render(self, max_count_per_row, mouse_pos, offset=(0, 0)) -> None:
         """
         Renders the tile groups on one per row with the variants separated by the given spacing
 
         :param max_count_per_row: The maximum number of items to display per row
+        :param mouse_pos: The mouse position
         :param offset: The offset for the position
         :return: None
         """
@@ -911,7 +912,11 @@ class TileGroup:
 
             if offset_pos[1] <= self.menu_section.size[1]:
                 variant.pos = offset_pos.copy()
-                variant.render()
+
+                if variant.collide(mouse_pos, offset):
+                    variant.render((offset[0], offset[1] + EDITOR_MENU_TILE_HOVERED_RAISE))
+                else:
+                    variant.render()
 
             offset_pos[0] += self.variants[i].img.get_width() + spacing
 
