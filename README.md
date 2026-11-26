@@ -1,9 +1,12 @@
 # Tileform
 
 ![logo](assets/images/demos/logo.png)
+
+![showcase](Screenshot 2026-11-26-115019.png)
+
 ---
 
-# About
+## About
 
 Introducing **Tileform**, your all-in-one solution for crafting immersive and visually captivating platformer games! 
 As a game developer, creating a rich and dynamic world is crucial to engaging players, 
@@ -15,4 +18,9 @@ our intuitive interface and extensive library of tiles, characters, and props em
 Elevate your game design to the next level with **Tileform**, 
 where every tile you lay is a step closer to immersing players in an unforgettable gaming experience.
 
----
+## Development
+
+```
+pip install requirements.txt
+py main.py
+```
